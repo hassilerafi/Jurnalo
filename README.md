@@ -27,6 +27,7 @@ Users can add, edit, and delete journal entries. Each entry consists of a title,
 ---
 
 ## 📂 Project Structure
+
 jurnalo/
 ├── .devcontainer/ # VS Code devcontainer config (optional)
 ├── backend/ # Motoko backend canister code
