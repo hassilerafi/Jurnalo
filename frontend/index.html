@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jurnalo</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    padding: 1rem;
+    background: #f6f8fa;
+  }
+  h1 {
+    text-align: center;
+  }
+  form {
+    max-width: 600px;
+    margin: auto;
+    background: #fff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  input, textarea {
+    width: 100%;
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 0.4rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 0.3rem;
+    cursor: pointer;
+  }
+  button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5);
+  }
+  #entries {
+    max-width: 600px;
+    margin: 1rem auto;
+  }
+  .entry {
+    background: white;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 0.4rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .entry h3 {
+    margin: 0 0 0.5rem;
+  }
+  .entry small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #666;
+  }
+  .actions button {
+    margin-right: 0.5rem;
+    background: #f0f0f0;
+    color: #333;
+  }
+  .actions button:hover {
+    background: #e0e0e0;
+  }
+  #notification {
+    display: none;
+    text-align: center;
+    padding: 0.6rem;
+    margin: 1rem auto;
+    max-width: 600px;
+    border-radius: 0.3rem;
+  }
+  #notification.success {
+    background: #d4edda;
+    color: #155724;
+  }
+  #notification.error {
+    background: #f8d7da;
+    color: #721c24;
+  }
+</style>
+</head>
+<body>
+<h1>📘 Jurnalo ✍️</h1>
+<div id="notification"></div>
+<form id="entry-form">
+  <input type="text" id="title" placeholder="Entry title..." required />
+  <textarea id="body" placeholder="Write something..." rows="5" required></textarea>
+  <button type="submit">Save</button>
+</form>
+<div id="entries"></div>
+
+<script>
+  // Simulasi backend sederhana untuk testing
+  let entriesDB = [];
+  let idCounter = 1;
+
+  // Helper: format timestamp nano (nanoseconds) to string
+  function formatDate(nano) {
+    const date = new Date(Number(nano) / 1000000);
+    return date.toLocaleString();
+  }
+
+  // Show notification
+  const notification = document.getElementById("notification");
+  function showNotification(message, type = "success") {
+    notification.innerText = message;
+    notification.className = type;
+    notification.style.display = "block";
+    setTimeout(() => (notification.style.display = "none"), 3000);
+  }
+
+  // Refresh entries list to UI
+  const entriesContainer = document.getElementById("entries");
+  async function refreshEntries() {
+    // Sort descending by timestamp
+    entriesDB.sort((a, b) => b.timestamp - a.timestamp);
+    entriesContainer.innerHTML = "";
+
+    for (let entry of entriesDB) {
+      const div = document.createElement("div");
+      div.className = "entry";
+
+      const title = document.createElement("h3");
+      title.textContent = entry.title;
+      div.appendChild(title);
+
+      const body = document.createElement("p");
+      body.textContent = entry.body;
+      div.appendChild(body);
+
+      const date = document.createElement("small");
+      date.textContent = formatDate(entry.timestamp);
+      div.appendChild(date);
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const editBtn = document.createElement("button");
+      editBtn.textContent = "✏️ Edit";
+      editBtn.addEventListener("click", () => {
+        editEntry(entry.id, entry.title, entry.body);
+      });
+      actions.appendChild(editBtn);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "🗑️ Delete";
+      deleteBtn.addEventListener("click", () => {
+        deleteEntry(entry.id);
+      });
+      actions.appendChild(deleteBtn);
+
+      div.appendChild(actions);
+      entriesContainer.appendChild(div);
+    }
+  }
+
+  // Edit entry (fill form)
+  const entryForm = document.getElementById("entry-form");
+  const titleInput = document.getElementById("title");
+  const bodyInput = document.getElementById("body");
+
+  function editEntry(id, title, body) {
+    titleInput.value = title;
+    bodyInput.value = body;
+    titleInput.focus();
+    entryForm.setAttribute("data-edit-id", id);
+  }
+
+  // Delete entry by id
+  function deleteEntry(id) {
+    entriesDB = entriesDB.filter(e => e.id !== id);
+    showNotification("Entry deleted", "error");
+    refreshEntries();
+  }
+
+  // Handle form submit (add or edit)
+  entryForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+
+    if (!title || !body) {
+      showNotification("Title and body cannot be empty", "error");
+      return;
+    }
+
+    const editId = entryForm.getAttribute("data-edit-id");
+
+    if (editId) {
+      // Edit existing entry
+      const idx = entriesDB.findIndex(e => e.id === Number(editId));
+      if (idx !== -1) {
+        entriesDB[idx].title = title;
+        entriesDB[idx].body = body;
+        entriesDB[idx].timestamp = Date.now() * 1000000; // nanoseconds simulation
+        showNotification("Entry updated");
+      }
+      entryForm.removeAttribute("data-edit-id");
+    } else {
+      // Add new entry
+      entriesDB.push({
+        id: idCounter++,
+        title,
+        body,
+        timestamp: Date.now() * 1000000, // nanoseconds simulation
+      });
+      showNotification("Entry added");
+    }
+
+    entryForm.reset();
+    refreshEntries();
+  });
+
+  // Initialize: refresh entries
+  refreshEntries();
+</script>
+</body>
+</html>
